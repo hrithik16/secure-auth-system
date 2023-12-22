@@ -15,7 +15,7 @@ module.exports.reset = function (req, res) {
 };
 
 module.exports.login = function (req, res) {
-  return res.render("login");
+  return res.render("login",{errMsg: ""});
 };
 
 module.exports.signup = function (req, res) {
@@ -23,8 +23,8 @@ module.exports.signup = function (req, res) {
 };
 
 module.exports.logout = function (req, res) {
-  req.session.destroy()
-  return res.render("home");
+  req.session.destroy();
+  return res.redirect("home", { logoutMsg: "User Logged out" });
 };
 
 module.exports.signupPost = async function (req, res) {
@@ -43,7 +43,7 @@ module.exports.signupPost = async function (req, res) {
       emailId: req.body.emailId,
       password: encryptedPassword,
     });
-    return res.render("home");
+    return res.redirect("dashboard");
   } catch (error) {
     console.error("Error adding user:", error);
   }
@@ -54,7 +54,7 @@ module.exports.loginPost = async function (req, res) {
     const user = await Users.findOne({ username: req.body.username });
 
     if (user) {
-      console.log('coming here')
+      console.log("coming here");
       const isPasswordValid = await isPasswordCorrect(
         req.body.password,
         user.password
@@ -63,24 +63,51 @@ module.exports.loginPost = async function (req, res) {
       if (isPasswordValid) {
         // Password is correct, proceed with login logic
         console.log("Login successful");
-        req.session.userId = user.id
-        return res.render("dashboard");
+        req.session.userId = user._id;
+        return res.redirect("dashboard");
       } else {
         console.log("Invalid password");
-        return res.render("login");
+        return res.redirect("login", { errMsg: "Wrong Password" });
       }
     } else {
       console.log("User not found");
-      return res.render("login");
+      return res.redirect("login", { errMsg: "User not found" });
     }
   } catch (error) {
     console.error("Error during login:", error);
   }
 };
 
-module.exports.resetPost = async function(req, res){
-
-}
+module.exports.resetPost = async function (req, res) {
+  const user = await Users.findById(req.session.userId);
+  const isPasswordValid = await isPasswordCorrect(
+    req.body.currentPassword,
+    user.password
+  );
+  if (isPasswordValid) {
+    const encryptedPassword = await bcrypt
+      .genSalt(saltRounds)
+      .then((salt) => {
+        return bcrypt.hash(req.body.newPassword, salt);
+      })
+      .catch((err) => console.error(err.message));
+    try {
+      await Users.findByIdAndUpdate(req.session.userId, {
+        password: encryptedPassword,
+      });
+      console.log("password change sucess");
+      return res.redirect("dashboard", {
+        sucessMsg: "Password Reset Sucessfull",
+      });
+    } catch (error) {
+      console.error("Error updating password:", error);
+    }
+  }
+  req.session.destroy();
+  return res.redirect("home", {
+    errMsg: "Someone tried to reset password with wrong password",
+  });
+};
 
 async function isPasswordCorrect(userPassword, dbPassword) {
   const isPasswordValid = await bcrypt.compare(userPassword, dbPassword);

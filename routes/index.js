@@ -16,6 +16,6 @@ router.get("/logout",auth.isNotLoggedIn, controller.logout);
 
 router.post("/login", controller.loginPost);
 router.post("/signup", controller.signupPost);
-router.post("/resetPost", controller.loginPost);
+router.post("/resetPost", controller.resetPost);
 
 module.exports = router
