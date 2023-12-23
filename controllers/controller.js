@@ -25,7 +25,7 @@ module.exports.signup = function (req, res) {
 
 module.exports.logout = function (req, res) {
   req.session.destroy();
-  return res.redirect("home", { errMsg: "User Logged out" });
+  return res.render("home", { errMsg: "User Logged out" });
 };
 
 module.exports.signupPost = async function (req, res) {
@@ -38,12 +38,13 @@ module.exports.signupPost = async function (req, res) {
 
   const len = await Users.countDocuments({});
   try {
-    const newUser = await Users.create({
+    const user = await Users.create({
       id: len + 1,
       username: req.body.username,
       emailId: req.body.emailId,
       password: encryptedPassword,
     });
+    req.session.userId = user._id;
     return res.redirect("dashboard");
   } catch (error) {
     console.error("Error adding user:", error);
