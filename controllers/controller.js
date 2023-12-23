@@ -67,11 +67,11 @@ module.exports.loginPost = async function (req, res) {
         return res.redirect("dashboard");
       } else {
         console.log("Invalid password");
-        return res.redirect("login", { errMsg: "Wrong Password" });
+        return res.render("login", { errMsg: "Wrong Password" });
       }
     } else {
       console.log("User not found");
-      return res.redirect("login", { errMsg: "User not found" });
+      return res.render("login", { errMsg: "User not found" });
     }
   } catch (error) {
     console.error("Error during login:", error);
@@ -96,7 +96,7 @@ module.exports.resetPost = async function (req, res) {
         password: encryptedPassword,
       });
       console.log("password change sucess");
-      return res.redirect("dashboard", {
+      return res.render("dashboard", {
         sucessMsg: "Password Reset Sucessfull",
       });
     } catch (error) {
@@ -104,7 +104,7 @@ module.exports.resetPost = async function (req, res) {
     }
   }
   req.session.destroy();
-  return res.redirect("home", {
+  return res.render("home", {
     errMsg: "Someone tried to reset password with wrong password",
   });
 };
