@@ -15,7 +15,7 @@ module.exports.reset = function (req, res) {
 };
 
 module.exports.login = function (req, res) {
-  return res.render("login",{errMsg: ""});
+  return res.render("login", { errMsg: "" });
 };
 
 module.exports.signup = function (req, res) {
@@ -96,9 +96,7 @@ module.exports.resetPost = async function (req, res) {
         password: encryptedPassword,
       });
       console.log("password change sucess");
-      return res.render("dashboard", {
-        sucessMsg: "Password Reset Sucessfull",
-      });
+      return res.redirect("dashboard");
     } catch (error) {
       console.error("Error updating password:", error);
     }
