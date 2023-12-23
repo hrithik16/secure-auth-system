@@ -1,9 +1,10 @@
 const Users = require("../models/user");
 const bcrypt = require("bcryptjs");
-const saltRounds = 10;
+const saltRounds = process.env.SALT_ROUNDS;
+const mailSender = require("../config/mailsender");
 
 module.exports.home = function (req, res) {
-  return res.render("home");
+  return res.render("home", { errMsg: "" });
 };
 
 module.exports.dashboard = function (req, res) {
@@ -24,7 +25,7 @@ module.exports.signup = function (req, res) {
 
 module.exports.logout = function (req, res) {
   req.session.destroy();
-  return res.redirect("home", { logoutMsg: "User Logged out" });
+  return res.redirect("home", { errMsg: "User Logged out" });
 };
 
 module.exports.signupPost = async function (req, res) {
@@ -54,7 +55,6 @@ module.exports.loginPost = async function (req, res) {
     const user = await Users.findOne({ username: req.body.username });
 
     if (user) {
-      console.log("coming here");
       const isPasswordValid = await isPasswordCorrect(
         req.body.password,
         user.password
@@ -107,7 +107,53 @@ module.exports.resetPost = async function (req, res) {
   });
 };
 
+module.exports.forgotPassword = async function (req, res) {
+  return res.render("forgotPassword", { errMsg: "" });
+};
+
+module.exports.forgotPasswordPost = async function (req, res) {
+  const user = await Users.findOne({ username: req.body.username });
+  if (user) {
+    const newPassword = generatePassword();
+    const isMailSent = await mailSender.sendMail(
+      user.emailId,
+      newPassword,
+      user.username
+    );
+    if (isMailSent) {
+      const encryptedPassword = await bcrypt
+        .genSalt(saltRounds)
+        .then((salt) => {
+          return bcrypt.hash(newPassword, salt);
+        })
+        .catch((err) => console.error(err.message));
+      try {
+        await Users.findByIdAndUpdate(user._id, {
+          password: encryptedPassword,
+        });
+        return res.redirect("login");
+      } catch (error) {
+        console.error("Error updating password:", error);
+      }
+    }
+  }
+  return res.render("forgotPassword", { errMsg: "User not found" });
+};
+
 async function isPasswordCorrect(userPassword, dbPassword) {
   const isPasswordValid = await bcrypt.compare(userPassword, dbPassword);
   return isPasswordValid;
+}
+
+function generatePassword(length = 12) {
+  const charset =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_-+=<>?";
+  let password = "";
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    password += charset.charAt(randomIndex);
+  }
+
+  return password;
 }
