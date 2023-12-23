@@ -15,12 +15,7 @@ function validatePasswords() {
 
   if (!passwordRegex.test(password1)) {
     console.log(password1);
-    msg.textContent = "Password 1 does not meet the criteria";
-    return false;
-  }
-
-  if (!passwordRegex.test(password2)) {
-    msg.textContent = "Password 1 does not meet the criteria";
+    msg.textContent = "Password does not meet the criteria";
     return false;
   }
 
