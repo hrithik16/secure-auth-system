@@ -11,11 +11,11 @@ function validatePasswords() {
   }
 
   // Check if passwords meet your criteria (e.g., minimum length, complexity)
-  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/; // Example: Requires at least 8 characters, one letter, and one digit
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
   if (!passwordRegex.test(password1)) {
     console.log(password1);
-    msg.textContent = "Password does not meet the criteria";
+    msg.textContent = "Password does not meet the criteria. Please ensures that there is at least one alphabet character, one digit, and one special character";
     return false;
   }
 
