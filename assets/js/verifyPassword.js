@@ -1,3 +1,10 @@
+document.addEventListener("DOMContentLoaded", function () {
+  var errorMsg = document.getElementById("error-msg");
+  if (errorMsg) {
+    disappear(errorMsg);
+  }
+});
+
 function validatePasswords() {
   // Get the values from the password input fields
   const password1 = document.getElementById("new-password").value;
@@ -15,14 +22,24 @@ function validatePasswords() {
 
   if (!passwordRegex.test(password1)) {
     console.log(password1);
-    msg.textContent = "Password does not meet the criteria. Please ensures that there is at least one alphabet character, one digit, and one special character";
+    msg.textContent =
+      "Password does not meet the criteria. Please ensures that there is at least one alphabet character, one digit, and one special character";
+    disappear(msg);
     return false;
   }
 
   // Check if passwords match
   if (password1 !== password2) {
     msg.textContent = "Passwords do not match";
+    disappear(msg);
     return false;
   }
   return true;
+}
+
+function disappear(element) {
+  setTimeout(function () {
+    element.style.display = "none";
+    element.textContent = "";
+  }, 5000);
 }

@@ -13,9 +13,9 @@ router.get("/reset", auth.isNotLoggedIn, controller.reset);
 router.get("/logout", auth.isNotLoggedIn, controller.logout);
 router.get("/forgotPassword", auth.isAlreadyLoggedIn, controller.forgotPassword);
 
-router.post("/login", controller.loginPost);
-router.post("/signup", controller.signupPost);
-router.post("/resetPost", controller.resetPost);
-router.post("/forgotPassword", controller.forgotPasswordPost);
+router.post("/login",auth.isAlreadyLoggedIn, controller.loginPost);
+router.post("/signup",auth.isAlreadyLoggedIn, controller.signupPost);
+router.post("/resetPost",auth.isNotLoggedIn, controller.resetPost);
+router.post("/forgotPassword", auth.isAlreadyLoggedIn, controller.forgotPasswordPost);
 
 module.exports = router;

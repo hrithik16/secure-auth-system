@@ -63,6 +63,9 @@
       <hr />
       <p class="help">Already have an account? <a href="/login">Sign in</a></p>
       <h4 id="validationMessage" class="error-msg"></h4>
+      <% if(errMsg !="") {%>
+      <p id="error-msg" class="error-msg"><%=errMsg%></p>
+      <% }%>
     </section>
     <footer class="info">
       <p>Created by <a href="https://github.com/hrithik16">Hrithik Gupta</a></p>

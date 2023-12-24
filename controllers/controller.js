@@ -20,7 +20,7 @@ module.exports.login = function (req, res) {
 };
 
 module.exports.signup = function (req, res) {
-  return res.render("signup");
+  return res.render("signup", {errMsg: ""});
 };
 
 module.exports.logout = function (req, res) {
@@ -29,15 +29,21 @@ module.exports.logout = function (req, res) {
 };
 
 module.exports.signupPost = async function (req, res) {
-  const encryptedPassword = await bcrypt
-    .genSalt(saltRounds)
-    .then((salt) => {
-      return bcrypt.hash(req.body.password, salt);
-    })
-    .catch((err) => console.error(err.message));
-
-  const len = await Users.countDocuments({});
   try {
+    const isUserNameTaken = await Users.findOne({username:req.body.username})
+
+    if(isUserNameTaken){
+      return res.render("signup", {errMsg: "Username already taken :("})
+    }
+
+    const isEmailIdExist = await Users.findOne({emailId: req.body.emailId})
+
+    if(isEmailIdExist){
+      return res.render("signup", {errMsg: "User already Exist Try forgot password if you don't remeber the Password"})
+    }
+
+    const encryptedPassword = await hashPassword(req.body.password);
+    const len = await Users.countDocuments({});
     const user = await Users.create({
       id: len + 1,
       username: req.body.username,
@@ -47,7 +53,7 @@ module.exports.signupPost = async function (req, res) {
     req.session.userId = user._id;
     return res.redirect("dashboard");
   } catch (error) {
-    console.error("Error adding user:", error);
+    handleServerError(res, error, "Error adding user:");
   }
 };
 
@@ -56,55 +62,43 @@ module.exports.loginPost = async function (req, res) {
     const user = await Users.findOne({ username: req.body.username });
 
     if (user) {
-      const isPasswordValid = await isPasswordCorrect(
-        req.body.password,
-        user.password
-      );
+      const isPasswordValid = await isPasswordCorrect(req.body.password, user.password);
 
       if (isPasswordValid) {
-        // Password is correct, proceed with login logic
         console.log("Login successful");
         req.session.userId = user._id;
         return res.redirect("dashboard");
       } else {
-        console.log("Invalid password");
-        return res.render("login", { errMsg: "Wrong Password" });
+        handleLoginError(res, "Wrong Password");
       }
     } else {
-      console.log("User not found");
-      return res.render("login", { errMsg: "User not found" });
+      handleLoginError(res, "User not found");
     }
   } catch (error) {
-    console.error("Error during login:", error);
+    handleServerError(res, error, "Error during login:");
   }
 };
 
 module.exports.resetPost = async function (req, res) {
   const user = await Users.findById(req.session.userId);
-  const isPasswordValid = await isPasswordCorrect(
-    req.body.currentPassword,
-    user.password
-  );
+  const isPasswordValid = await isPasswordCorrect(req.body.currentPassword, user.password);
+
   if (isPasswordValid) {
-    const encryptedPassword = await bcrypt
-      .genSalt(saltRounds)
-      .then((salt) => {
-        return bcrypt.hash(req.body.newPassword, salt);
-      })
-      .catch((err) => console.error(err.message));
     try {
+      const encryptedPassword = await hashPassword(req.body.newPassword);
       await Users.findByIdAndUpdate(req.session.userId, {
         password: encryptedPassword,
       });
-      console.log("password change sucess");
+      console.log("Password change successful");
       return res.redirect("dashboard");
     } catch (error) {
-      console.error("Error updating password:", error);
+      handleServerError(res, error, "Error updating password:");
     }
   }
+
   req.session.destroy();
   return res.render("home", {
-    errMsg: "Someone tried to reset password with wrong password",
+    errMsg: "Someone tried to reset the password with the wrong password",
   });
 };
 
@@ -113,31 +107,29 @@ module.exports.forgotPassword = async function (req, res) {
 };
 
 module.exports.forgotPasswordPost = async function (req, res) {
-  const user = await Users.findOne({ username: req.body.username });
+  const user = await Users.findOne({ emailId: req.body.emailId });
+
   if (user) {
     const newPassword = generatePassword();
-    const isMailSent = await mailSender.sendMail(
-      user.emailId,
-      newPassword,
-      user.username
-    );
+    const isMailSent = await mailSender.sendMail(user.emailId, newPassword, user.username);
+
     if (isMailSent) {
-      const encryptedPassword = await bcrypt
-        .genSalt(saltRounds)
-        .then((salt) => {
-          return bcrypt.hash(newPassword, salt);
-        })
-        .catch((err) => console.error(err.message));
       try {
+        const encryptedPassword = await hashPassword(newPassword);
         await Users.findByIdAndUpdate(user._id, {
           password: encryptedPassword,
         });
         return res.redirect("login");
       } catch (error) {
-        console.error("Error updating password:", error);
+        handleServerError(res, error, "Error updating password:");
       }
     }
   }
+
+  else {
+    return res.render("signup",{errMsg:"No user exist with the given mail please signup"});
+  }
+
   return res.render("forgotPassword", { errMsg: "User not found" });
 };
 
@@ -157,4 +149,24 @@ function generatePassword(length = 12) {
   }
 
   return password;
+}
+
+async function hashPassword(password) {
+  try {
+    const salt = await bcrypt.genSalt(saltRounds);
+    return await bcrypt.hash(password, salt);
+  } catch (error) {
+    throw new Error(`Error hashing password: ${error.message}`);
+  }
+}
+
+function handleLoginError(res, errMsg) {
+  console.log(errMsg);
+  return res.render("login", { errMsg });
+}
+
+function handleServerError(res, error, errMsg) {
+  console.error(`${errMsg} ${error.message}`);
+  // Handle or log the error in a more sophisticated way
+  return res.status(500).send("Internal Server Error");
 }
